@@ -1,14 +1,14 @@
 const bleTag = require('../classes/bleTag.ts');
-const bleTagList = new Map();
+const listWithBleTagInstances = new Map();
 
 const getBleTag = (macAdress) => {
-    if(bleTagList.has(macAdress)){
-        return bleTagList.get(macAdress)
+    if(listWithBleTagInstances.has(macAdress)){
+        return listWithBleTagInstances.get(macAdress);
     }
     else{
-        var bleTagCreate = new bleTag(macAdress);
-        bleTagList.set(macAdress, bleTagCreate);
-        return bleTagCreate
+        let createInstancesOfBleTagClass = new bleTag(macAdress);
+        listWithBleTagInstances.set(macAdress, createInstancesOfBleTagClass);
+        return createInstancesOfBleTagClass;
 
     }
 }
@@ -23,8 +23,23 @@ const recieveBeaconSignalsFromRpiAndAddToBeaconClass = (request, response) => {
         let bleTagObject = getBleTag(macAdress);
         let data = beaconSignals[keys[i]];
         bleTagObject.addPostRequest(ipAdressOfRpi,data);
-        console.log(bleTagObject)
-    }    
+    }
+    calculateBleTagPosition()    
+}
+
+const calculateBleTagPosition = function BleTagPosition() { 
+    for (const [macAdress, bleTag] of listWithBleTagInstances.entries()) {
+        let postRequests = bleTag.postRequestWithBeacon;
+        let maxSignal = -200;
+        let position = "";
+        for(const [ipAdressRpi, beaconData] of postRequests.entries()){
+            if(beaconData.rssi > maxSignal){
+                maxSignal = beaconData.rssi
+                position = ipAdressRpi
+            }
+        }
+        bleTag.lastSeenPosition = position
+    }
 }
 
 module.exports = {

@@ -1,6 +1,7 @@
 module.exports = class bleTag {
     macAdress;
     postRequestWithBeacon = new Map();
+    lastSeenPosition;
     constructor(macA){
         this.macAdress = macA;
     }
@@ -8,5 +9,3 @@ module.exports = class bleTag {
         this.postRequestWithBeacon.set(ipAdress,data);
     }
 }
-
-

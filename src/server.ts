@@ -18,6 +18,9 @@ app.get('/', (request, response) => {
 
 app.post('/beaconSignal', controllers.recieveBeaconSignalsFromRpiAndAddToBeaconClass)
 
+app.get('/beaconData', (request, response) => 
+    {response.json({info: 'Get position of bleTag/trolley not implemented'})
+})
 app.listen(port, () => {
     console.log(`App running on port ${port}.`)
 })
