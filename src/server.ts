@@ -16,7 +16,10 @@ app.get('/', (request, response) => {
     response.json({ info: 'Node.js, Express, and postrgres API' })
 })
 
-app.post('/beaconSignal', controllers.recieveBeaconSignalsFromRpiAndAddToBeaconClass)
+app.post('/beaconSignal', (request,response) => {
+    response.send('Success')
+    controllers.recieveBeaconSignalsFromRpiAndAddToBeaconClass(request);
+})
 
 app.get('/beaconData', (request, response) => 
     {

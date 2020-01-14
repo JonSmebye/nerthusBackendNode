@@ -1,6 +1,6 @@
 const bleTag = require('../classes/bleTag.ts');
 const listWithBleTagInstances = new Map();
-const bleTagSonePosition = new Map();
+const bleTagSonePositionList = new Map();
 const rpi = ['192.168.1.230','192.168.1.231','192.168.1.232'];
 
 const getBleTag = (macAdress) => {
@@ -15,7 +15,7 @@ const getBleTag = (macAdress) => {
     }
 }
 
-const recieveBeaconSignalsFromRpiAndAddToBeaconClass = (request, response) => {
+const recieveBeaconSignalsFromRpiAndAddToBeaconClass = (request) => {
     var beaconSignals = JSON.parse(request.body['json_payload']);
     var ipAdressOfRpi = beaconSignals['ipAdressRpi'];
     delete beaconSignals['ipAdressRpi'];
@@ -40,16 +40,21 @@ const calculateBleTagPosition = function BleTagPosition() {
             }
         }
         bleTag.lastSeenPosition = position;
+        console.log(bleTag)
     }
 }
 
-const updateBleTagSoneListPosition = () => {
+const updateBleTagSonePositionList = () => {
     for(var i=0; i < rpi.length;i++){
-        bleTagSonePosition.set(rpi[i],{val:0})
+        bleTagSonePositionList.set(rpi[i],{val:0})
     }
     for (const [macAdress, bleTag] of listWithBleTagInstances.entries()) {
-        let position = bleTag.lastSeenPosition;
-        bleTagSonePosition.get(position).val++;
+        try{
+            let position = bleTag.lastSeenPosition;
+            bleTagSonePositionList.get(position).val++;
+        }catch(err){
+            console.log('Error in retrieveing last seen position of BLE Tag')
+        }
     }
 }
 
@@ -60,12 +65,11 @@ const clearBleTagPostRequests  = () => {
 }
 
 setInterval(function(){
-    bleTagSonePosition.clear();
+    bleTagSonePositionList.clear();
     calculateBleTagPosition();
-    updateBleTagSoneListPosition();
+    updateBleTagSonePositionList();
     clearBleTagPostRequests();
-    console.log(bleTagSonePosition);
-},12000);
+},25000);
 
 
 module.exports = {
