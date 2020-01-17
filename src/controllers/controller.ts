@@ -1,15 +1,16 @@
 const bleTag = require('../classes/bleTag.ts');
 const listWithBleTagInstances = new Map();
-const bleTagSonePositionList = new Map();
+const bleTagSonePositionList = {'192.168.1.230':0,'192.168.1.231':0,'192.168.1.232':0};
 const rpi = ['192.168.1.230','192.168.1.231','192.168.1.232'];
+const fs = require('fs');
 
-const getBleTag = (macAdress) => {
-    if(listWithBleTagInstances.has(macAdress)){
-        return listWithBleTagInstances.get(macAdress);
+const getBleTag = (macAddress) => {
+    if(listWithBleTagInstances.has(macAddress)){
+        return listWithBleTagInstances.get(macAddress);
     }
     else{
-        let createInstancesOfBleTagClass = new bleTag(macAdress);
-        listWithBleTagInstances.set(macAdress, createInstancesOfBleTagClass);
+        let createInstancesOfBleTagClass = new bleTag(macAddress);
+        listWithBleTagInstances.set(macAddress, createInstancesOfBleTagClass);
         return createInstancesOfBleTagClass;
 
     }
@@ -17,41 +18,46 @@ const getBleTag = (macAdress) => {
 
 const recieveBeaconSignalsFromRpiAndAddToBeaconClass = (request) => {
     var beaconSignals = JSON.parse(request.body['json_payload']);
-    var ipAdressOfRpi = beaconSignals['ipAdressRpi'];
+    var ipAddressOfRpi = beaconSignals['ipAdressRpi'];
     delete beaconSignals['ipAdressRpi'];
     var keys = Object.keys(beaconSignals);
     for (var i=0; i < keys.length; i++){
-        let macAdress = keys[i];
-        let bleTagObject = getBleTag(macAdress);
+        let macAddress = keys[i];
+        let bleTagObject = getBleTag(macAddress);
         let data = beaconSignals[keys[i]];
-        bleTagObject.addPostRequest(ipAdressOfRpi,data);
+        bleTagObject.addPostRequest(ipAddressOfRpi,data);
     }
 }
 
 const calculateBleTagPosition = function BleTagPosition() { 
-    for (const [macAdress, bleTag] of listWithBleTagInstances.entries()) {
+    for (const [macAddress, bleTag] of listWithBleTagInstances.entries()) {
         let postRequests = bleTag.postRequestWithBeacon;
         let maxSignal = -200;
         let position = "";
-        for(const [ipAdressRpi, beaconData] of postRequests.entries()){
+        for(const [ipAddressRpi, beaconData] of postRequests.entries()){
             if(beaconData.rssi > maxSignal){
                 maxSignal = beaconData.rssi;
-                position = ipAdressRpi;
+                position = ipAddressRpi;
             }
         }
         bleTag.lastSeenPosition = position;
-        console.log(bleTag)
+        //console.log(bleTag)
     }
 }
 
 const updateBleTagSonePositionList = () => {
     for(var i=0; i < rpi.length;i++){
-        bleTagSonePositionList.set(rpi[i],{val:0})
+        bleTagSonePositionList[rpi[i]] = 0;
     }
-    for (const [macAdress, bleTag] of listWithBleTagInstances.entries()) {
+    for (const [macAddress, bleTag] of listWithBleTagInstances.entries()) {
         try{
-            let position = bleTag.lastSeenPosition;
-            bleTagSonePositionList.get(position).val++;
+            if(bleTag.lastSeenPosition == ''){
+                console.log('BleTag with macAddress' + macAddress + ' not seen')
+            }
+            else{
+                let position = bleTag.lastSeenPosition;
+                bleTagSonePositionList[position] += 1;
+            }
         }catch(err){
             console.log('Error in retrieveing last seen position of BLE Tag')
         }
@@ -59,20 +65,31 @@ const updateBleTagSonePositionList = () => {
 }
 
 const clearBleTagPostRequests  = () => {
-    for(const [macAdress,bleTag] of listWithBleTagInstances){
+    for(const [macAddress,bleTag] of listWithBleTagInstances){
         bleTag.postRequestWithBeacon.clear();
     }
 }
 
+const writeToFile = () => {
+    for(const [macAddress, bleTag] of listWithBleTagInstances.entries()){
+        var bleTagStr = JSON.stringify(bleTag);
+        fs.appendFile("/var/log/bleTagObject", bleTagStr + JSON.stringify([...bleTag.postRequestWithBeacon]) +'\n', function(err) {
+            if(err) {
+                return console.log(err);
+            }
+        });
+    }
+}
+
 setInterval(function(){
-    bleTagSonePositionList.clear();
     calculateBleTagPosition();
     updateBleTagSonePositionList();
+    writeToFile();
     clearBleTagPostRequests();
-},25000);
+},65000);
 
 
 module.exports = {
     recieveBeaconSignalsFromRpiAndAddToBeaconClass,
-    bleTagSonePosition
-}
+    bleTagSonePositionList
+};

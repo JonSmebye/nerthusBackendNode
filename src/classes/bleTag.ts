@@ -1,11 +1,11 @@
 module.exports = class bleTag {
-    macAdress;
+    macAddress;
     postRequestWithBeacon = new Map();
     lastSeenPosition;
     constructor(macA){
-        this.macAdress = macA;
+        this.macAddress = macA;
     }
-    addPostRequest = (ipAdress, data) => {
-        this.postRequestWithBeacon.set(ipAdress,data);
+    addPostRequest = (ipAddress, data) => {
+        this.postRequestWithBeacon.set(ipAddress,data);
     }
 }
